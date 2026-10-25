@@ -14,7 +14,7 @@ export default function ParlayCard({ parlay, gameScores, onDelete, onEdit }) {
 
   return (
     <div className={`bg-gray-900 border rounded-xl overflow-hidden transition-all ${
-      isLive ? 'border-emerald-500/40 shadow-lg shadow-emerald-900/20' : 'border-gray-700/50'
+      isLive ? 'border-sky-500/40 shadow-lg shadow-sky-900/20' : 'border-gray-700/50'
     }`}>
       {/* Header */}
       <div
@@ -22,8 +22,8 @@ export default function ParlayCard({ parlay, gameScores, onDelete, onEdit }) {
         onClick={() => setExpanded(e => !e)}
       >
         {isLive && (
-          <span className="flex items-center gap-1 text-xs font-semibold text-emerald-400 bg-emerald-900/40 px-2 py-0.5 rounded-full flex-shrink-0">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+          <span className="flex items-center gap-1 text-xs font-semibold text-sky-400 bg-sky-900/40 px-2 py-0.5 rounded-full flex-shrink-0">
+            <span className="w-1.5 h-1.5 rounded-full bg-sky-400 animate-pulse" />
             LIVE
           </span>
         )}

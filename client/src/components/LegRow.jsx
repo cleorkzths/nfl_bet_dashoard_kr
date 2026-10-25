@@ -1,8 +1,8 @@
 import React from 'react';
-import { STATUS_META, formatStat, formatPct } from '../utils/format.js';
-import { formatOdds } from '../utils/odds.js';
+import { STATUS_META, formatStat } from '../utils/format.js';
+import { formatOdds, impliedExpected } from '../utils/odds.js';
 import { calcElapsed, projectedTotal } from '../hooks/useGameScores.js';
-import { impliedExpected } from '../utils/odds.js';
+import MiniSpeedometer from './MiniSpeedometer.jsx';
 
 const TYPE_ICONS = {
   spread: '↕',
@@ -48,13 +48,9 @@ export default function LegRow({ leg, game }) {
           </div>
         )}
 
-        {/* Win probability */}
+        {/* Win probability speedometer */}
         {leg.win_probability !== null && leg.win_probability !== undefined && (
-          <div className="flex-shrink-0 w-12 text-right">
-            <p className={`text-xs font-semibold ${meta.color}`}>
-              {formatPct(leg.win_probability)}
-            </p>
-          </div>
+          <MiniSpeedometer probability={leg.win_probability} />
         )}
 
         {/* Odds */}
