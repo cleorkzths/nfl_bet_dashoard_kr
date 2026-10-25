@@ -132,7 +132,7 @@ function computeLegUpdate(leg, summary) {
     current_value = stat;
 
     win_probability = stat !== null
-      ? playerPropProb({ currentStat: stat, line: leg.line, direction: leg.direction, elapsedSeconds, completed })
+      ? playerPropProb({ currentStat: stat, line: leg.line, direction: leg.direction, elapsedSeconds, completed, odds: leg.odds, propType: leg.prop_type })
       : oddsImpliedProb(leg.odds);
 
     if (completed && stat !== null) {

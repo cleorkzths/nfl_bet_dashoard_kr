@@ -72,7 +72,7 @@ export function totalProb({ homeScore, awayScore, line, direction, elapsedSecond
   return clamp(normalCDF(z));
 }
 
-export function playerPropProb({ currentStat, line, direction, elapsedSeconds, completed }) {
+export function playerPropProb({ currentStat, line, direction, elapsedSeconds, completed, odds, propType }) {
   if (currentStat === null || currentStat === undefined) return null;
 
   if (completed) {
@@ -85,8 +85,10 @@ export function playerPropProb({ currentStat, line, direction, elapsedSeconds, c
   const timeLeft = TOTAL_SECS - elapsedSeconds;
   const paceProjected = (currentStat / elapsedSeconds) * TOTAL_SECS;
   const alpha = elapsedSeconds / TOTAL_SECS;
-  // Prior for player props: the line itself (market is the best unbiased estimate)
-  const projected = alpha * paceProjected + (1 - alpha) * line;
+  // Use odds-derived prior so alt lines don't masquerade as the true expectation.
+  // e.g. over 5 rec at +140 implies expected ~4.4, not 5.
+  const prior = impliedExpected(line, odds, propType, direction);
+  const projected = alpha * paceProjected + (1 - alpha) * prior;
 
   const stddev = Math.sqrt(timeLeft / 60) * 2.5;
   const gap = direction === 'over' ? projected - line : line - projected;
@@ -108,6 +110,31 @@ export function parlayProb(legs) {
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
+
+const PROP_SIGMA = {
+  receptions: 2.5, receiving_yards: 28, receiving_tds: 0.7,
+  rushing_yards: 28, rushing_tds: 0.6,
+  passing_yards: 55, passing_tds: 1.1, interceptions: 0.7,
+};
+
+function probit(p) {
+  if (p <= 0.001) return -3.1;
+  if (p >= 0.999) return 3.1;
+  const pp = p < 0.5 ? p : 1 - p;
+  const t = Math.sqrt(-2 * Math.log(pp));
+  const c = [2.515517, 0.802853, 0.010328];
+  const d = [1.432788, 0.189269, 0.001308];
+  const x = t - (c[0] + c[1] * t + c[2] * t * t) / (1 + d[0] * t + d[1] * t * t + d[2] * t * t * t);
+  return p < 0.5 ? -x : x;
+}
+
+function impliedExpected(line, americanOdds, propType, direction = 'over') {
+  if (!americanOdds || line == null) return line;
+  const sigma = PROP_SIGMA[propType] ?? Math.max(1, line * 0.35);
+  const rawProb = americanToProb(americanOdds);
+  const pOver = direction === 'over' ? rawProb : 1 - rawProb;
+  return line + sigma * probit(pOver);
+}
 
 function clamp(p) {
   return Math.min(0.97, Math.max(0.03, p));

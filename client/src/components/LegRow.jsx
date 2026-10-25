@@ -2,6 +2,7 @@ import React from 'react';
 import { STATUS_META, formatStat, formatPct } from '../utils/format.js';
 import { formatOdds } from '../utils/odds.js';
 import { calcElapsed, projectedTotal } from '../hooks/useGameScores.js';
+import { impliedExpected } from '../utils/odds.js';
 
 const TYPE_ICONS = {
   spread: '↕',
@@ -125,12 +126,14 @@ export default function LegRow({ leg, game }) {
           {/* Player stat chip */}
           {leg.type === 'player_prop' && leg.current_value !== null && leg.current_value !== undefined && (() => {
             const elapsed = calcElapsed(game.period, game.clock);
-            // Bayesian blend: weight pace by elapsed fraction, market line by remaining fraction.
-            // Prevents 0 catches in Q1 from projecting to 0 — early on we trust the line as prior.
+            // Bayesian blend: weight pace by elapsed fraction, market prior by remaining fraction.
+            // Prior is derived from the odds — e.g. over 5 rec at +140 implies expected ~4.4,
+            // not 5, so we don't over-inflate projections for alt lines.
             const proj = elapsed > 120 ? (() => {
               const pace = (leg.current_value / elapsed) * 3600;
               const alpha = elapsed / 3600;
-              return alpha * pace + (1 - alpha) * (leg.line ?? pace);
+              const prior = impliedExpected(leg.line, leg.odds, leg.prop_type, leg.direction);
+              return alpha * pace + (1 - alpha) * prior;
             })() : null;
             const onPace = proj !== null
               ? (leg.direction === 'over' ? proj >= leg.line : proj <= leg.line)
