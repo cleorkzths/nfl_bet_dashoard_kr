@@ -1,8 +1,5 @@
 {
   "buildCommand": "npm install && cd client && npm install && npm run build",
   "outputDirectory": "client/dist",
-  "installCommand": "npm install",
-  "crons": [
-    { "path": "/api/cron/poll", "schedule": "0 * * * *" }
-  ]
+  "installCommand": "npm install"
 }
