@@ -14,7 +14,7 @@ export default function ParlayCard({ parlay, gameScores, onDelete, onEdit }) {
 
   return (
     <div className={`bg-gray-900 border rounded-xl overflow-hidden transition-all ${
-      isLive ? 'border-sky-500/40 shadow-lg shadow-sky-900/20' : 'border-gray-700/50'
+      isLive ? 'border-sky-500/70 shadow-lg shadow-sky-900/30' : 'border-gray-700/50'
     }`}>
       {/* Header */}
       <div

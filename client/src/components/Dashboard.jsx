@@ -13,9 +13,15 @@ export default function Dashboard({ parlays, setParlays, connected, lastUpdated 
   const [tab, setTab] = useState('parlays');
   const gameScores = useGameScores();
 
-  const filtered = parlays.filter(p =>
-    filter === 'all' ? true : p.status === filter || (filter === 'active' && p.status === 'pending')
-  );
+  const filtered = parlays
+    .filter(p => filter === 'all' ? true : p.status === filter || (filter === 'active' && p.status === 'pending'))
+    .sort((a, b) => {
+      // Null dates go last
+      if (!a.game_date && !b.game_date) return 0;
+      if (!a.game_date) return 1;
+      if (!b.game_date) return -1;
+      return new Date(a.game_date) - new Date(b.game_date);
+    });
 
   async function handleDelete(id) {
     if (!confirm('Delete this parlay?')) return;
