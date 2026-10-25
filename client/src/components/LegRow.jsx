@@ -43,7 +43,7 @@ export default function LegRow({ leg, game }) {
               {formatLiveValue(leg)}
             </p>
             <p className="text-xs text-gray-500">
-              {leg.type === 'player_prop' ? formatStat(leg.current_value, leg.prop_type) : `vs ${leg.line}`}
+              vs {leg.type === 'player_prop' ? formatStat(leg.line, leg.prop_type) : leg.line}
             </p>
           </div>
         )}
