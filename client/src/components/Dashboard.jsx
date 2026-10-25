@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import ParlayCard from './ParlayCard.jsx';
 import AddParlayModal from './AddParlayModal.jsx';
+import { useGameScores } from '../hooks/useGameScores.js';
 
 const FILTER_OPTIONS = ['all', 'active', 'pending', 'won', 'lost'];
 
@@ -8,6 +9,7 @@ export default function Dashboard({ parlays, setParlays, connected, lastUpdated 
   const [showModal, setShowModal] = useState(false);
   const [editingParlay, setEditingParlay] = useState(null);
   const [filter, setFilter] = useState('all');
+  const gameScores = useGameScores();
 
   const filtered = parlays.filter(p =>
     filter === 'all' ? true : p.status === filter || (filter === 'active' && p.status === 'pending')
@@ -35,7 +37,6 @@ export default function Dashboard({ parlays, setParlays, connected, lastUpdated 
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
-      {/* Top bar */}
       <header className="sticky top-0 z-40 bg-gray-950/90 backdrop-blur border-b border-gray-800/60">
         <div className="max-w-3xl mx-auto px-4 py-3 flex items-center gap-4">
           <div className="flex items-center gap-2 flex-1">
@@ -43,7 +44,6 @@ export default function Dashboard({ parlays, setParlays, connected, lastUpdated 
             <h1 className="text-base font-bold tracking-tight">NFL Parlay Tracker</h1>
           </div>
 
-          {/* Connection status */}
           <div className="flex items-center gap-1.5 text-xs">
             <span className={`w-2 h-2 rounded-full ${connected ? 'bg-emerald-400 animate-pulse' : 'bg-red-500'}`} />
             <span className={connected ? 'text-emerald-400' : 'text-red-400'}>
@@ -51,7 +51,6 @@ export default function Dashboard({ parlays, setParlays, connected, lastUpdated 
             </span>
           </div>
 
-          {/* Add button */}
           <button
             onClick={() => setShowModal(true)}
             className="bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold px-4 py-1.5 rounded-lg transition-colors flex items-center gap-1"
@@ -62,7 +61,6 @@ export default function Dashboard({ parlays, setParlays, connected, lastUpdated 
       </header>
 
       <main className="max-w-3xl mx-auto px-4 py-6 space-y-6">
-        {/* Stats bar */}
         {parlays.length > 0 && (
           <div className="grid grid-cols-3 gap-3">
             <StatBox label="Active" value={activeParlays.length} color="text-emerald-400" />
@@ -71,7 +69,6 @@ export default function Dashboard({ parlays, setParlays, connected, lastUpdated 
           </div>
         )}
 
-        {/* Filter tabs */}
         {parlays.length > 0 && (
           <div className="flex gap-1 bg-gray-900 p-1 rounded-lg">
             {FILTER_OPTIONS.map(f => (
@@ -79,9 +76,7 @@ export default function Dashboard({ parlays, setParlays, connected, lastUpdated 
                 key={f}
                 onClick={() => setFilter(f)}
                 className={`flex-1 text-xs py-1.5 rounded-md font-medium capitalize transition-colors ${
-                  filter === f
-                    ? 'bg-gray-700 text-white'
-                    : 'text-gray-500 hover:text-gray-300'
+                  filter === f ? 'bg-gray-700 text-white' : 'text-gray-500 hover:text-gray-300'
                 }`}
               >
                 {f}
@@ -90,14 +85,12 @@ export default function Dashboard({ parlays, setParlays, connected, lastUpdated 
           </div>
         )}
 
-        {/* Last updated */}
         {lastUpdated && (
           <p className="text-xs text-gray-600 text-right -mt-2">
             Updated {lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
           </p>
         )}
 
-        {/* Parlay list */}
         {filtered.length === 0 ? (
           <div className="text-center py-20 space-y-4">
             <p className="text-5xl">🏈</p>
@@ -116,7 +109,13 @@ export default function Dashboard({ parlays, setParlays, connected, lastUpdated 
         ) : (
           <div className="space-y-4">
             {filtered.map(parlay => (
-              <ParlayCard key={parlay.id} parlay={parlay} onDelete={handleDelete} onEdit={setEditingParlay} />
+              <ParlayCard
+                key={parlay.id}
+                parlay={parlay}
+                gameScores={gameScores}
+                onDelete={handleDelete}
+                onEdit={setEditingParlay}
+              />
             ))}
           </div>
         )}

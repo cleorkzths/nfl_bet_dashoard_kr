@@ -1,114 +1,104 @@
 /**
  * Live leg win probability estimators.
  * All return a value [0, 1].
+ *
+ * Key design: Bayesian blend between current pace and market prior (the line).
+ * Early in the game the pace estimate is noisy, so we weight toward the prior.
+ * As elapsed time increases we trust the observed pace more.
  */
 
 import { americanToProb } from './odds.js';
 
-// Seconds per quarter
-const Q = 900;
+const Q = 900; // seconds per quarter
 const TOTAL_SECS = 3600;
 
-/**
- * Moneyline: use ESPN win probability directly.
- */
 export function moneylineProb({ team, homeTeam, homeWinPct, awayWinPct, completed, wonTeam }) {
-  if (completed) {
-    return wonTeam === team ? 1 : 0;
-  }
+  if (completed) return wonTeam === team ? 1 : 0;
   if (homeWinPct === null) return null;
   const isHome = team?.toLowerCase() === homeTeam?.toLowerCase();
   return isHome ? homeWinPct : awayWinPct;
 }
 
-/**
- * Spread: estimate probability of covering given current score diff and time.
- * Uses a simple linear regression approach with normal distribution.
- */
-export function spreadProb({ teamScore, oppScore, line, elapsedSeconds, completed, teamIsHome, homeWinPct }) {
+export function spreadProb({ teamScore, oppScore, line, elapsedSeconds, completed }) {
   if (completed) {
     const diff = teamScore - oppScore;
-    if (Math.abs(diff + line) < 0.5) return 0.5; // push
+    if (Math.abs(diff + line) < 0.5) return 0.5;
     return (diff + line) > 0 ? 1 : 0;
   }
 
-  const currentDiff = teamScore - oppScore; // positive = team leading
-  const currentVsLine = currentDiff + line;  // positive = covering
-
+  const currentDiff = teamScore - oppScore;
   const timeLeft = TOTAL_SECS - elapsedSeconds;
+  if (elapsedSeconds < 60) return null;
   if (timeLeft <= 0) {
-    return currentVsLine > 0 ? 1 : currentVsLine < 0 ? 0 : 0.5;
+    const cv = currentDiff + line;
+    return cv > 0 ? 1 : cv < 0 ? 0 : 0.5;
   }
 
-  // Points per second in NFL ≈ 45pts / 3600s = 0.0125 pts/sec per team
-  // Combined scoring std dev grows with sqrt(timeLeft)
-  const pointsPerSec = 0.0125;
-  const expectedPtsRemaining = timeLeft * pointsPerSec * 2; // both teams
-  const stddev = Math.sqrt(timeLeft / 60) * 1.4; // rough empirical
+  // Current cover margin vs expected (0 = at the line)
+  const currentVsLine = currentDiff + line;
 
-  // z-score: how many std devs is current cover margin from 0
-  const z = currentVsLine / stddev;
-  return normalCDF(z);
+  // Bayesian blend: early → trust the prior (0 margin), late → trust observed
+  const alpha = elapsedSeconds / TOTAL_SECS;
+  const blendedMargin = alpha * currentVsLine; // prior is 0 (equal chance)
+
+  const stddev = Math.sqrt(timeLeft / 60) * 1.4;
+  const z = blendedMargin / stddev;
+  return clamp(normalCDF(z));
 }
 
-/**
- * Total (over/under): use current scoring pace to estimate final total.
- */
 export function totalProb({ homeScore, awayScore, line, direction, elapsedSeconds, completed }) {
   const combined = homeScore + awayScore;
 
   if (completed) {
     if (Math.abs(combined - line) < 0.5) return 0.5;
-    const over = combined > line;
-    return (direction === 'over') === over ? 1 : 0;
+    return (direction === 'over') === (combined > line) ? 1 : 0;
   }
 
   const timeLeft = TOTAL_SECS - elapsedSeconds;
-  if (elapsedSeconds < 60) return null; // too early
+  if (elapsedSeconds < 60) return null;
+  if (timeLeft <= 0) {
+    if (Math.abs(combined - line) < 0.5) return 0.5;
+    return (direction === 'over') === (combined > line) ? 1 : 0;
+  }
 
-  // Projected total based on current pace
-  const pace = (combined / elapsedSeconds) * TOTAL_SECS;
+  // Bayesian projection: blend observed pace with market prior (the line)
+  const paceProjected = (combined / elapsedSeconds) * TOTAL_SECS;
+  const alpha = elapsedSeconds / TOTAL_SECS;
+  const projected = alpha * paceProjected + (1 - alpha) * line;
+
   const stddev = Math.sqrt(timeLeft / 60) * 1.4;
-
-  const gap = direction === 'over' ? pace - line : line - pace;
+  const gap = direction === 'over' ? projected - line : line - projected;
   const z = gap / stddev;
-  return normalCDF(z);
+  return clamp(normalCDF(z));
 }
 
-/**
- * Player prop: use current stat vs. line with time-based projection.
- */
 export function playerPropProb({ currentStat, line, direction, elapsedSeconds, completed }) {
   if (currentStat === null || currentStat === undefined) return null;
 
   if (completed) {
     if (Math.abs(currentStat - line) < 0.5) return 0.5;
-    const over = currentStat > line;
-    return (direction === 'over') === over ? 1 : 0;
+    return (direction === 'over') === (currentStat > line) ? 1 : 0;
   }
 
-  if (elapsedSeconds < 120) return null; // need some sample
+  if (elapsedSeconds < 120) return null;
 
   const timeLeft = TOTAL_SECS - elapsedSeconds;
-  const pace = (currentStat / elapsedSeconds) * TOTAL_SECS;
-  const stddev = Math.sqrt(timeLeft / 60) * 2.5; // props have more variance
+  const paceProjected = (currentStat / elapsedSeconds) * TOTAL_SECS;
+  const alpha = elapsedSeconds / TOTAL_SECS;
+  // Prior for player props: the line itself (market is the best unbiased estimate)
+  const projected = alpha * paceProjected + (1 - alpha) * line;
 
-  const gap = direction === 'over' ? pace - line : line - pace;
+  const stddev = Math.sqrt(timeLeft / 60) * 2.5;
+  const gap = direction === 'over' ? projected - line : line - projected;
   const z = gap / stddev;
-  return normalCDF(z);
+  return clamp(normalCDF(z));
 }
 
-/**
- * Fallback: use locked-in odds implied probability.
- */
 export function oddsImpliedProb(americanOdds) {
   if (!americanOdds) return 0.5;
   return americanToProb(americanOdds);
 }
 
-/**
- * Parlay combined probability.
- */
 export function parlayProb(legs) {
   if (!legs.length) return 0;
   return legs.reduce((acc, leg) => {
@@ -117,10 +107,13 @@ export function parlayProb(legs) {
   }, 1);
 }
 
-// ── Math helpers ─────────────────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function clamp(p) {
+  return Math.min(0.97, Math.max(0.03, p));
+}
 
 function normalCDF(z) {
-  // Abramowitz & Stegun approximation
   const a = 0.2316419;
   const b = [0.319381530, -0.356563782, 1.781477937, -1.821255978, 1.330274429];
   const t = 1 / (1 + a * Math.abs(z));

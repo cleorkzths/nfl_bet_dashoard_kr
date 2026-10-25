@@ -4,7 +4,7 @@ import ProbabilityGauge from './ProbabilityGauge.jsx';
 import { parlayProb, formatOdds, bookImpliedProb } from '../utils/odds.js';
 import { STATUS_META, formatCurrency, formatDate } from '../utils/format.js';
 
-export default function ParlayCard({ parlay, onDelete, onEdit }) {
+export default function ParlayCard({ parlay, gameScores, onDelete, onEdit }) {
   const [expanded, setExpanded] = useState(true);
   const meta = STATUS_META[parlay.status] ?? STATUS_META.pending;
   const calcProb = parlayProb(parlay.legs);
@@ -21,7 +21,6 @@ export default function ParlayCard({ parlay, onDelete, onEdit }) {
         className="flex items-center gap-3 px-5 py-4 cursor-pointer select-none"
         onClick={() => setExpanded(e => !e)}
       >
-        {/* Live indicator */}
         {isLive && (
           <span className="flex items-center gap-1 text-xs font-semibold text-emerald-400 bg-emerald-900/40 px-2 py-0.5 rounded-full flex-shrink-0">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
@@ -29,7 +28,6 @@ export default function ParlayCard({ parlay, onDelete, onEdit }) {
           </span>
         )}
 
-        {/* Name + date */}
         <div className="flex-1 min-w-0">
           <h2 className="font-semibold text-white truncate">{parlay.name}</h2>
           <p className="text-xs text-gray-500">
@@ -37,7 +35,6 @@ export default function ParlayCard({ parlay, onDelete, onEdit }) {
           </p>
         </div>
 
-        {/* Stake / payout */}
         <div className="text-right flex-shrink-0 hidden sm:block">
           {parlay.stake && (
             <p className="text-sm text-gray-300">
@@ -49,12 +46,10 @@ export default function ParlayCard({ parlay, onDelete, onEdit }) {
           )}
         </div>
 
-        {/* Status badge */}
         <span className={`text-xs px-2.5 py-1 rounded-full font-semibold flex-shrink-0 ${meta.color} ${meta.bg} border border-white/5`}>
           {meta.label}
         </span>
 
-        {/* Expand chevron */}
         <span className={`text-gray-500 transition-transform flex-shrink-0 ${expanded ? 'rotate-180' : ''}`}>
           ▾
         </span>
@@ -63,7 +58,6 @@ export default function ParlayCard({ parlay, onDelete, onEdit }) {
       {/* Body */}
       {expanded && (
         <div className="px-4 pb-4 space-y-2">
-          {/* Gauge row */}
           {parlay.legs.length > 0 && (
             <div className="flex items-center justify-between gap-4 bg-gray-800/60 rounded-xl p-4 mb-3">
               <ProbabilityGauge probability={calcProb} size={150} />
@@ -80,14 +74,16 @@ export default function ParlayCard({ parlay, onDelete, onEdit }) {
             </div>
           )}
 
-          {/* Leg rows */}
           <div className="space-y-1.5">
             {parlay.legs.map(leg => (
-              <LegRow key={leg.id} leg={leg} />
+              <LegRow
+                key={leg.id}
+                leg={leg}
+                game={gameScores?.[leg.game_id]}
+              />
             ))}
           </div>
 
-          {/* Actions */}
           <div className="pt-2 flex justify-end gap-3">
             <button
               onClick={(e) => { e.stopPropagation(); onEdit(parlay); }}
