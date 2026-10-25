@@ -69,18 +69,6 @@ export default function MiniSpeedometer({ probability }) {
 
       {/* Center pivot dot */}
       <circle cx={cx} cy={cy} r="2" fill={needleColor} />
-
-      {/* Percentage label */}
-      <text
-        x={cx} y={cy + 10}
-        textAnchor="middle"
-        fontSize="6.5"
-        fontFamily="monospace"
-        fill={needleColor}
-        fontWeight="bold"
-      >
-        {Math.round(pct * 100)}%
-      </text>
     </svg>
   );
 }

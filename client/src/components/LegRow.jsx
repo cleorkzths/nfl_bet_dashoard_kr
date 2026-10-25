@@ -48,9 +48,14 @@ export default function LegRow({ leg, game }) {
           </div>
         )}
 
-        {/* Win probability speedometer */}
+        {/* Win probability speedometer + % */}
         {leg.win_probability !== null && leg.win_probability !== undefined && (
-          <MiniSpeedometer probability={leg.win_probability} />
+          <div className="flex items-center gap-1 flex-shrink-0">
+            <MiniSpeedometer probability={leg.win_probability} />
+            <span className={`text-xs font-mono font-semibold w-8 ${meta.color}`}>
+              {Math.round(leg.win_probability * 100)}%
+            </span>
+          </div>
         )}
 
         {/* Odds */}
