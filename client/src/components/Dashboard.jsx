@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import ParlayCard from './ParlayCard.jsx';
 import AddParlayModal from './AddParlayModal.jsx';
+import Guide from './Guide.jsx';
 import { useGameScores } from '../hooks/useGameScores.js';
 
 const FILTER_OPTIONS = ['all', 'active', 'pending', 'won', 'lost'];
@@ -9,6 +10,7 @@ export default function Dashboard({ parlays, setParlays, connected, lastUpdated 
   const [showModal, setShowModal] = useState(false);
   const [editingParlay, setEditingParlay] = useState(null);
   const [filter, setFilter] = useState('all');
+  const [tab, setTab] = useState('parlays');
   const gameScores = useGameScores();
 
   const filtered = parlays.filter(p =>
@@ -51,16 +53,35 @@ export default function Dashboard({ parlays, setParlays, connected, lastUpdated 
             </span>
           </div>
 
-          <button
-            onClick={() => setShowModal(true)}
-            className="bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold px-4 py-1.5 rounded-lg transition-colors flex items-center gap-1"
-          >
-            <span className="text-base leading-none">+</span> New Parlay
-          </button>
+          <div className="flex items-center gap-1 bg-gray-900 rounded-lg p-0.5">
+            <button
+              onClick={() => setTab('parlays')}
+              className={`text-xs px-3 py-1.5 rounded-md font-medium transition-colors ${tab === 'parlays' ? 'bg-gray-700 text-white' : 'text-gray-500 hover:text-gray-300'}`}
+            >
+              Parlays
+            </button>
+            <button
+              onClick={() => setTab('guide')}
+              className={`text-xs px-3 py-1.5 rounded-md font-medium transition-colors ${tab === 'guide' ? 'bg-gray-700 text-white' : 'text-gray-500 hover:text-gray-300'}`}
+            >
+              Guide
+            </button>
+          </div>
+
+          {tab === 'parlays' && (
+            <button
+              onClick={() => setShowModal(true)}
+              className="bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold px-4 py-1.5 rounded-lg transition-colors flex items-center gap-1"
+            >
+              <span className="text-base leading-none">+</span> New Parlay
+            </button>
+          )}
         </div>
       </header>
 
-      <main className="max-w-3xl mx-auto px-4 py-6 space-y-6">
+      {tab === 'guide' && <Guide />}
+
+      <main className={`max-w-3xl mx-auto px-4 py-6 space-y-6 ${tab !== 'parlays' ? 'hidden' : ''}`}>
         {parlays.length > 0 && (
           <div className="grid grid-cols-3 gap-3">
             <StatBox label="Active" value={activeParlays.length} color="text-emerald-400" />
