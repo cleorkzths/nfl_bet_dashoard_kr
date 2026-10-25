@@ -125,7 +125,13 @@ export default function LegRow({ leg, game }) {
           {/* Player stat chip */}
           {leg.type === 'player_prop' && leg.current_value !== null && leg.current_value !== undefined && (() => {
             const elapsed = calcElapsed(game.period, game.clock);
-            const proj = elapsed > 120 ? (leg.current_value / elapsed) * 3600 : null;
+            // Bayesian blend: weight pace by elapsed fraction, market line by remaining fraction.
+            // Prevents 0 catches in Q1 from projecting to 0 — early on we trust the line as prior.
+            const proj = elapsed > 120 ? (() => {
+              const pace = (leg.current_value / elapsed) * 3600;
+              const alpha = elapsed / 3600;
+              return alpha * pace + (1 - alpha) * (leg.line ?? pace);
+            })() : null;
             const onPace = proj !== null
               ? (leg.direction === 'over' ? proj >= leg.line : proj <= leg.line)
               : null;
